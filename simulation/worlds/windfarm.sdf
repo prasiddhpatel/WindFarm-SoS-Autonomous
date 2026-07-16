@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="windfarm">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system"
+            name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-magnetometer-system"
+            name="gz::sim::systems::Magnetometer"/>
+    <plugin filename="gz-sim-air-pressure-system"
+            name="gz::sim::systems::AirPressure"/>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 100 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <material><ambient>0.4 0.5 0.4 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Turbine tower WTG-01 -->
+    <model name="turbine_01">
+      <static>true</static>
+      <pose>10 0 0 0 0 0</pose>
+      <link name="tower">
+        <collision name="c"><geometry><cylinder><radius>1.5</radius><length>90</length></cylinder></geometry></collision>
+        <visual name="v">
+          <pose>0 0 45 0 0 0</pose>
+          <geometry><cylinder><radius>1.5</radius><length>90</length></cylinder></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Turbine tower WTG-02 -->
+    <model name="turbine_02">
+      <static>true</static>
+      <pose>30 0 0 0 0 0</pose>
+      <link name="tower">
+        <collision name="c"><geometry><cylinder><radius>1.5</radius><length>90</length></cylinder></geometry></collision>
+        <visual name="v">
+          <pose>0 0 45 0 0 0</pose>
+          <geometry><cylinder><radius>1.5</radius><length>90</length></cylinder></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- UAV spawn point -->
+    <model name="uav_start">
+      <static>true</static>
+      <pose>0 0 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry><sphere><radius>0.15</radius></sphere></geometry>
+          <material><ambient>0 0.8 0 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- UGV spawn point -->
+    <model name="ugv_start">
+      <static>true</static>
+      <pose>-5 0 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry><box><size>0.3 0.3 0.15</size></box></geometry>
+          <material><ambient>0 0 0.8 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

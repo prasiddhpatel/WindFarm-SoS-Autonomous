@@ -6,44 +6,56 @@ on:
   pull_request:
 
 jobs:
-  # ── Backend unit + integration ───────────────────────────────────────────
+  # ── Backend unit + integration ─────────────────────────────────────────
   backend-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install backend deps
-        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy scipy
-
-      - name: Run full pytest suite
+      - name: Install deps
+        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy scipy pillow
+      - name: Run pytest
         run: PYTHONPATH=sos_orchestrator pytest tests/ -v --tb=short
-
       - name: Integration validator (module-only)
         run: PYTHONPATH=sos_orchestrator python3 tests/integration_validation.py --no-live
 
-  # ── Model-runner + perception tests (no ROS, no GPU) ─────────────────────
+  # ── Perception + model runner tests ─────────────────────────────────
   perception-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install perception deps
-        run: pip install pytest numpy
-
-      - name: Run perception tests
+      - name: Install deps
+        run: pip install pytest numpy pillow
+      - name: Perception + dataset tests
         run: |
           PYTHONPATH=ros2_ws/src/drone_perception \
-            pytest tests/test_perception.py tests/test_model_runner.py -v --tb=short
+            pytest tests/test_perception.py \
+                   tests/test_model_runner.py \
+                   tests/test_dataset.py \
+                   tests/test_smoke_sim.py \
+                   -v --tb=short
 
-  # ── Dashboard build ───────────────────────────────────────────────────────
+  # ── E2E orchestration smoke test ─────────────────────────────────────
+  e2e-orchestration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy pillow
+      - name: E2E orchestration smoke test
+        run: |
+          PYTHONPATH=sos_orchestrator:ros2_ws/src/drone_perception \
+            pytest tests/test_e2e_orchestration.py -v --tb=short
+
+  # ── Dashboard build ───────────────────────────────────────────────
   dashboard-build:
     runs-on: ubuntu-latest
     steps:
@@ -51,75 +63,48 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: |
-          cd ops_dashboard
-          npm install
-          npm run build
+      - run: cd ops_dashboard && npm install && npm run build
 
-  # ── ROS 2 build (ordered colcon steps) ───────────────────────────────────
+  # ── ROS 2 build (5-step ordered colcon) ─────────────────────────────
   ros2-build-check:
     runs-on: ubuntu-latest
     container:
       image: ros:humble-ros-base
     steps:
       - uses: actions/checkout@v4
-
       - name: Install apt deps
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-            ros-humble-eigen3-cmake-module \
-            ros-humble-pcl-conversions \
-            ros-humble-rclcpp-action \
-            ros-humble-tf2-eigen \
-            ros-humble-cv-bridge \
-            libpcl-dev \
-            python3-colcon-common-extensions \
-            python3-numpy
-
-      - name: 1 — Build sos_interfaces
+            ros-humble-eigen3-cmake-module ros-humble-pcl-conversions \
+            ros-humble-rclcpp-action ros-humble-tf2-eigen ros-humble-cv-bridge \
+            libpcl-dev python3-colcon-common-extensions python3-numpy python3-pip
+      - name: 1 — sos_interfaces
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
           cd ros2_ws && colcon build --packages-select sos_interfaces --symlink-install
-
-      - name: 2 — Build Python packages
+      - name: 2 — Python packages
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash
-          source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
           cd ros2_ws
-          colcon build \
-            --packages-select drone_perception ground_robot_dock nde_crawler \
-            --symlink-install
-
-      - name: 3 — Build C++ packages
+          colcon build --packages-select drone_perception ground_robot_dock nde_crawler --symlink-install
+      - name: 3 — C++ packages
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash
-          source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
           cd ros2_ws
-          colcon build \
-            --packages-select \
-              drone_control drone_coverage drone_estimation \
-              ground_robot_nav safety_monitor \
-            --symlink-install
-
-      - name: 4 — Build bringup
+          colcon build --packages-select drone_control drone_coverage drone_estimation ground_robot_nav safety_monitor --symlink-install
+      - name: 4 — Bringup
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash
-          source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
           cd ros2_ws && colcon build --packages-select windfarm_bringup --symlink-install
-
-      - name: 5 — Launch import smoke check
+      - name: 5 — Smoke checks
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash
-          source ros2_ws/install/setup.bash
-          python3 -c "
-          from launch import LaunchDescription
-          from launch_ros.actions import Node
-          from launch.actions import IncludeLaunchDescription
-          print('launch imports ok')
-          "
+          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
+          python3 -c "from launch import LaunchDescription; from launch_ros.actions import Node; print('ok')"
+          pip3 install pytest numpy pillow --quiet
+          PYTHONPATH=ros2_ws/src/drone_perception pytest tests/test_perception.py tests/test_model_runner.py -v --tb=short
