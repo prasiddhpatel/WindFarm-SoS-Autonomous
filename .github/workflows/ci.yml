@@ -16,12 +16,19 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
-        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy scipy pillow
-      - name: pytest (exclude e2e — that job has its own PYTHONPATH)
         run: |
-          PYTHONPATH=sos_orchestrator pytest tests/ \
-            --ignore=tests/test_e2e_orchestration.py \
-            -v --tb=short
+          pip install -r sos_orchestrator/requirements.txt \
+            pytest httpx numpy scipy pillow
+      - name: Run backend + MRTA + digital-twin tests
+        # PYTHONPATH covers:
+        #   sos_orchestrator  — api, mrta, digital_twin, db, config
+        #   .                 — training/, simulation/ (needed by test_dataset, test_smoke_sim)
+        #   ros2_ws/src/drone_perception — needed by test_ros_nodes
+        run: |
+          PYTHONPATH=sos_orchestrator:ros2_ws/src/drone_perception:. \
+            pytest tests/ \
+              --ignore=tests/test_e2e_orchestration.py \
+              -v --tb=short
       - name: Integration validator (module-only)
         run: PYTHONPATH=sos_orchestrator python3 tests/integration_validation.py --no-live
 
@@ -35,9 +42,12 @@ jobs:
           python-version: '3.11'
       - name: Install deps
         run: pip install pytest numpy pillow
-      - name: Run perception tests
+      - name: Run perception + dataset + sim-config tests
+        # PYTHONPATH:
+        #   ros2_ws/src/drone_perception — drone_perception package
+        #   .                             — training/ and simulation/ at repo root
         run: |
-          PYTHONPATH=ros2_ws/src/drone_perception \
+          PYTHONPATH=ros2_ws/src/drone_perception:. \
             pytest tests/test_perception.py \
                    tests/test_model_runner.py \
                    tests/test_dataset.py \
@@ -53,7 +63,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
-        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy pillow
+        run: |
+          pip install -r sos_orchestrator/requirements.txt \
+            pytest httpx numpy pillow
       - name: E2E orchestration smoke test
         run: |
           PYTHONPATH=sos_orchestrator:ros2_ws/src/drone_perception \
@@ -76,46 +88,68 @@ jobs:
       image: ros:humble-ros-base
     steps:
       - uses: actions/checkout@v4
+
       - name: Install apt deps
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-            ros-humble-eigen3-cmake-module ros-humble-pcl-conversions \
-            ros-humble-rclcpp-action ros-humble-tf2-eigen ros-humble-cv-bridge \
-            libpcl-dev python3-colcon-common-extensions \
-            python3-numpy python3-scipy python3-pip
+            build-essential \
+            ros-humble-eigen3-cmake-module \
+            ros-humble-pcl-conversions \
+            ros-humble-rclcpp-action \
+            ros-humble-tf2-eigen \
+            ros-humble-cv-bridge \
+            libpcl-dev \
+            python3-colcon-common-extensions \
+            python3-numpy \
+            python3-scipy \
+            python3-opencv \
+            python3-pip
+
       - name: 1 — sos_interfaces
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
           cd ros2_ws && colcon build --packages-select sos_interfaces --symlink-install
+
       - name: 2 — Python packages
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
           cd ros2_ws
           colcon build \
             --packages-select drone_perception ground_robot_dock nde_crawler \
             --symlink-install
+
       - name: 3 — C++ packages
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
           cd ros2_ws
           colcon build \
             --packages-select drone_control drone_coverage drone_estimation \
                                ground_robot_nav safety_monitor \
             --symlink-install
+
       - name: 4 — Bringup
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
           cd ros2_ws && colcon build --packages-select windfarm_bringup --symlink-install
-      - name: 5 — Smoke checks inside container
+
+      - name: 5 — Smoke checks
         shell: bash
         run: |
-          source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
-          python3 -c "from launch import LaunchDescription; from launch_ros.actions import Node; print('launch ok')"
-          pip3 install pytest numpy pillow --quiet
-          PYTHONPATH=ros2_ws/src/drone_perception \
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
+          python3 -c "
+          from launch import LaunchDescription
+          from launch_ros.actions import Node
+          print('launch ok')
+          "
+          pip3 install pytest --quiet
+          PYTHONPATH=ros2_ws/src/drone_perception:. \
             pytest tests/test_perception.py tests/test_model_runner.py -v --tb=short
