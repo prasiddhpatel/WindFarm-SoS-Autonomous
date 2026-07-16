@@ -1,0 +1,12 @@
+geometric_controller:
+  ros__parameters:
+    mass_kg: 3.5
+    ixx: 0.082
+    iyy: 0.082
+    izz: 0.149
+    arm_length_m: 0.275
+    kf: 8.54858e-6
+    km: 1.6e-7
+    omega_min_rad_s: 100.0
+    omega_max_rad_s: 1200.0
+    control_rate_hz: 200.0

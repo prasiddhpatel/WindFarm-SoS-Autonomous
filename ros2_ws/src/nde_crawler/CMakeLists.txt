@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.8)
+project(nde_crawler)
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sos_interfaces REQUIRED)
+
+add_executable(crawler_controller src/crawler_controller.cpp)
+ament_target_dependencies(crawler_controller rclcpp geometry_msgs sensor_msgs std_msgs sos_interfaces)
+install(TARGETS crawler_controller DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+ament_package()
