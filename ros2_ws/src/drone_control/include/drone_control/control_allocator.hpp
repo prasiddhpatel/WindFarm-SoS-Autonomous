@@ -1,6 +1,6 @@
 #pragma once
-#include <Eigen/Dense>
 #include <array>
+#include <Eigen/Dense>
 
 namespace drone_control {
 
@@ -17,12 +17,10 @@ public:
   Output allocate(double thrust, const Eigen::Vector3d& torque) const;
 
 private:
-  void build_gamma();
-
-  double kf_, km_, ell_;
-  double omega_min_, omega_max_;
+  double kf_, km_, ell_, omega_min_, omega_max_;
   Eigen::Matrix4d Gamma_;
   Eigen::Matrix4d Gamma_inv_;
+  void build_gamma();
 };
 
 } // namespace drone_control

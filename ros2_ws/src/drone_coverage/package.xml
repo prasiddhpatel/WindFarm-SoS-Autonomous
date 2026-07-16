@@ -2,7 +2,7 @@
 <package format="3">
   <name>drone_coverage</name>
   <version>0.1.0</version>
-  <description>Coverage planning and minimum-snap trajectory generation for blade inspection.</description>
+  <description>Boustrophedon coverage planner and min-snap trajectory for blade inspection.</description>
   <maintainer email="prasiddh@example.com">Prasiddh Patel</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -13,10 +13,7 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>eigen3_cmake_module</depend>
   <depend>sos_interfaces</depend>
-  <depend>pcl_conversions</depend>
-  <build_depend>eigen3_cmake_module</build_depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
   <export><build_type>ament_cmake</build_type></export>
 </package>

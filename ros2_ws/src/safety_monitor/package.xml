@@ -2,7 +2,7 @@
 <package format="3">
   <name>safety_monitor</name>
   <version>0.1.0</version>
-  <description>Independent safety watchdog, geofencing and degraded-mode management.</description>
+  <description>Rate-monotonic scheduler and safety watchdog for windfarm SoS.</description>
   <maintainer email="prasiddh@example.com">Prasiddh Patel</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -11,7 +11,5 @@
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>sos_interfaces</depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
   <export><build_type>ament_cmake</build_type></export>
 </package>
