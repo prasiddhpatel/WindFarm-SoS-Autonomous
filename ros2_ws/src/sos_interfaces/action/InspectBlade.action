@@ -1,0 +1,24 @@
+# Goal: instruct UAV to perform a full LiDAR-referenced coverage sweep of one blade
+string turbine_id
+uint8  blade_index
+float32 target_gsd_m          # desired GSD in metres/pixel
+float32 standoff_distance_m   # d* commanded standoff
+bool   thermal_enabled
+bool   lidar_enabled
+---
+# Result: summary after blade fully covered
+uint32  patches_observed
+uint32  patches_flagged_high_severity
+uint32  patches_queued_for_contact_nde
+float32 coverage_fraction
+float32 flight_time_s
+float32 energy_used_wh
+bool    completed_successfully
+string  failure_reason
+---
+# Feedback: real-time progress
+float32 coverage_fraction_so_far
+float32 current_standoff_m
+float32 current_gsd_m
+geometry_msgs/Pose current_pose
+uint32  patches_observed_so_far
