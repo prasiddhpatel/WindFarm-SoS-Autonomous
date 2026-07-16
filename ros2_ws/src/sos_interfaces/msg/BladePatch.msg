@@ -1,0 +1,10 @@
+string patch_id
+string turbine_id
+uint8 blade_index
+float32 chord_pos
+float32 span_pos
+uint8 defect_class
+float32 severity
+float32 severity_cov
+float32 rul_days
+string recommendation

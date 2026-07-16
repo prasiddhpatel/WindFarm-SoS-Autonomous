@@ -1,0 +1,9 @@
+std_msgs/Header header
+string patch_id
+uint8 defect_class
+float32 confidence
+float32 severity
+float32 uncertainty_aleatoric
+float32 uncertainty_epistemic
+sensor_msgs/Image rgb_crop
+sensor_msgs/Image thermal_crop

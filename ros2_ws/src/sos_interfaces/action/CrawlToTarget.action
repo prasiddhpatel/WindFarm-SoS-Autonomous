@@ -1,23 +1,8 @@
-# Goal: command NDE crawler to climb to a georegistered patch and perform UT scan
-string turbine_id
-uint8  blade_index
-float32 chord_pos
-float32 span_pos
-bool   perform_ut_scan
-bool   perform_ae_monitoring
-float32 scan_area_m2          # rastered area around patch centre
+string patch_id
+geometry_msgs/PoseStamped target_pose
 ---
-# Result
-bool   reached_target
-bool   scan_complete
-float32 ut_depth_m            # defect depth from pulse-echo (eq. 32)
-float32 ut_lateral_extent_m  # -6dB C-scan extent
-string  defect_type_ut        # "none"|"delamination"|"porosity"|"crack"
-float32 adhesion_safety_factor
-float32 energy_used_wh
+bool accepted
+string task_id
 ---
-# Feedback
-string  phase                 # "climbing"|"positioning"|"scanning"|"retreating"
-float32 adhesion_margin
-geometry_msgs/Point position_blade_frame
-float32 progress_fraction
+float32 percent_complete
+string status
