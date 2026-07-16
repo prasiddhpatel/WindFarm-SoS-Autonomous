@@ -1,0 +1,103 @@
+version: '3.9'
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: sos_mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ../infrastructure/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sos_postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: windfarm_sos
+      POSTGRES_USER: sos
+      POSTGRES_PASSWORD: sos_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../database/init:/docker-entrypoint-initdb.d:ro
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: sos_timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: telemetry
+      POSTGRES_USER: telemetry
+      POSTGRES_PASSWORD: telemetry_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - ts_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: sos_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ../sos_orchestrator
+      dockerfile: Dockerfile.api
+    container_name: sos_api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - timescaledb
+      - redis
+      - mqtt
+    environment:
+      DATABASE_URL: postgresql+psycopg://sos:sos_password@postgres:5432/windfarm_sos
+      TELEMETRY_URL: postgresql+psycopg://telemetry:telemetry_password@timescaledb:5432/telemetry
+      REDIS_URL: redis://redis:6379/0
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+    ports:
+      - "8080:8080"
+
+  orchestrator:
+    build:
+      context: ../sos_orchestrator
+      dockerfile: Dockerfile.worker
+    container_name: sos_orchestrator
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - timescaledb
+      - redis
+      - mqtt
+    environment:
+      DATABASE_URL: postgresql+psycopg://sos:sos_password@postgres:5432/windfarm_sos
+      TELEMETRY_URL: postgresql+psycopg://telemetry:telemetry_password@timescaledb:5432/telemetry
+      REDIS_URL: redis://redis:6379/0
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+
+  dashboard:
+    build:
+      context: ../ops_dashboard
+      dockerfile: Dockerfile
+    container_name: sos_dashboard
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  mqtt_data:
+  mqtt_log:
+  pg_data:
+  ts_data:
