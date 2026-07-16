@@ -6,45 +6,82 @@ on:
   pull_request:
 
 jobs:
+  # ── Backend unit + API tests ──────────────────────────────────────────────
   backend-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install deps
-        run: |
-          cd sos_orchestrator
-          pip install -r requirements.txt
-          pip install pytest httpx
-      - name: Run unit + API tests
-        run: pytest tests/ -v
 
+      - name: Install backend deps
+        run: pip install -r sos_orchestrator/requirements.txt pytest httpx
+
+      - name: Run pytest suite
+        run: PYTHONPATH=sos_orchestrator pytest tests/ -v --tb=short
+
+      - name: Run integration validator (module-only)
+        run: PYTHONPATH=sos_orchestrator python3 tests/integration_validation.py --no-live
+
+  # ── Dashboard build ───────────────────────────────────────────────────────
   dashboard-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Build
+
+      - name: Install and build
         run: |
           cd ops_dashboard
           npm install
           npm run build
 
+  # ── ROS 2 build (sos_interfaces + bringup) ────────────────────────────────
   ros2-build-check:
     runs-on: ubuntu-latest
     container:
       image: ros:humble-ros-base
     steps:
       - uses: actions/checkout@v4
-      - name: Install Eigen
-        run: apt-get update && apt-get install -y ros-humble-eigen3-cmake-module libpcl-dev
-      - name: Colcon build (packages with no external deps)
+
+      - name: Install apt deps
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+            ros-humble-eigen3-cmake-module \
+            ros-humble-pcl-conversions \
+            ros-humble-rclcpp-action \
+            ros-humble-tf2-eigen \
+            libpcl-dev \
+            python3-colcon-common-extensions
+
+      - name: Build sos_interfaces
+        shell: bash
         run: |
           source /opt/ros/humble/setup.bash
           cd ros2_ws
-          colcon build --packages-select windfarm_bringup --symlink-install
+          colcon build --packages-select sos_interfaces --symlink-install
+
+      - name: Build windfarm_bringup
         shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
+          cd ros2_ws
+          colcon build --packages-select windfarm_bringup --symlink-install
+
+      - name: Launch import smoke check
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          python3 -c "
+          from launch import LaunchDescription
+          from launch_ros.actions import Node
+          from launch.actions import IncludeLaunchDescription
+          print('launch imports ok')
+          "
