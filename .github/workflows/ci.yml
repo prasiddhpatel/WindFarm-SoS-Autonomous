@@ -6,31 +6,45 @@ on:
   pull_request:
 
 jobs:
-  backend:
+  backend-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install backend deps
+      - name: Install deps
         run: |
           cd sos_orchestrator
           pip install -r requirements.txt
-      - name: Import smoke test
-        run: |
-          cd sos_orchestrator
-          python -c "from api.main import app; from digital_twin.paris_rul import rul_days; print('backend ok')"
+          pip install pytest httpx
+      - name: Run unit + API tests
+        run: pytest tests/ -v
 
-  dashboard:
+  dashboard-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Build dashboard
+      - name: Build
         run: |
           cd ops_dashboard
           npm install
           npm run build
+
+  ros2-build-check:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble-ros-base
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Eigen
+        run: apt-get update && apt-get install -y ros-humble-eigen3-cmake-module libpcl-dev
+      - name: Colcon build (packages with no external deps)
+        run: |
+          source /opt/ros/humble/setup.bash
+          cd ros2_ws
+          colcon build --packages-select windfarm_bringup --symlink-install
+        shell: bash

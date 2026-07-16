@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="inspection_uav">
+    <pose>0 0 0.15 0 0 0</pose>
+    <link name="base_link">
+      <inertial>
+        <mass>3.5</mass>
+        <inertia><ixx>0.082</ixx><ixy>0</ixy><ixz>0</ixz><iyy>0.082</iyy><iyz>0</iyz><izz>0.149</izz></inertia>
+      </inertial>
+      <collision name="body_col">
+        <geometry><cylinder><radius>0.25</radius><length>0.07</length></geometry></geometry></collision>
+      <visual name="body_vis">
+        <geometry><cylinder><radius>0.25</radius><length>0.07</length></geometry></geometry></visual>
+    </link>
+
+    <link name="arm_fl">
+      <pose>0.1945 0.1945 0.022 0 0 0</pose>
+      <inertial><mass>0.05</mass><inertia><ixx>1e-5</ixx><iyy>1e-5</iyy><izz>1e-5</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.005</radius><length>0.275</length></geometry></visual>
+    </link>
+    <link name="arm_fr">
+      <pose>0.1945 -0.1945 0.022 0 0 0</pose>
+      <inertial><mass>0.05</mass><inertia><ixx>1e-5</ixx><iyy>1e-5</iyy><izz>1e-5</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.005</radius><length>0.275</length></geometry></visual>
+    </link>
+
+    <link name="rotor_fl">
+      <pose>0.275 0.275 0.07 0 0 0</pose>
+      <inertial><mass>0.025</mass><inertia><ixx>9.75e-7</ixx><iyy>1.66e-4</iyy><izz>1.66e-4</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.1143</radius><length>0.005</length></geometry></visual>
+    </link>
+    <link name="rotor_fr">
+      <pose>0.275 -0.275 0.07 0 0 0</pose>
+      <inertial><mass>0.025</mass><inertia><ixx>9.75e-7</ixx><iyy>1.66e-4</iyy><izz>1.66e-4</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.1143</radius><length>0.005</length></geometry></visual>
+    </link>
+    <link name="rotor_rl">
+      <pose>-0.275 0.275 0.07 0 0 0</pose>
+      <inertial><mass>0.025</mass><inertia><ixx>9.75e-7</ixx><iyy>1.66e-4</iyy><izz>1.66e-4</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.1143</radius><length>0.005</length></geometry></visual>
+    </link>
+    <link name="rotor_rr">
+      <pose>-0.275 -0.275 0.07 0 0 0</pose>
+      <inertial><mass>0.025</mass><inertia><ixx>9.75e-7</ixx><iyy>1.66e-4</iyy><izz>1.66e-4</izz></inertia></inertial>
+      <visual name="v"><geometry><cylinder><radius>0.1143</radius><length>0.005</length></geometry></visual>
+    </link>
+
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>uav_a_01</robotNamespace>
+      <jointName>rotor_fl_joint</jointName>
+      <linkName>rotor_fl</linkName><motorNumber>0</motorNumber>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp><timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1000</maxRotVelocity><motorConstant>8.54858e-6</motorConstant>
+      <momentConstant>1.6e-7</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+    </plugin>
+
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on><update_rate>400</update_rate>
+      <topic>/uav_a_01/imu</topic>
+    </sensor>
+    <sensor name="gps" type="navsat">
+      <always_on>true</always_on><update_rate>10</update_rate>
+      <topic>/uav_a_01/gnss</topic>
+    </sensor>
+  </model>
+</sdf>
