@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sos-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sos-dashboard
+  template:
+    metadata:
+      labels:
+        app: sos-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: ghcr.io/prasiddhpatel/windfarm-sos-dashboard:latest
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sos-dashboard
+spec:
+  selector:
+    app: sos-dashboard
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
