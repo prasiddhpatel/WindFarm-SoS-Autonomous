@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  # ── Backend unit + API tests ──────────────────────────────────────────────
+  # ── Backend unit + integration ─────────────────────────────────────────────
   backend-unit:
     runs-on: ubuntu-latest
     steps:
@@ -17,31 +17,29 @@ jobs:
           python-version: '3.11'
 
       - name: Install backend deps
-        run: pip install -r sos_orchestrator/requirements.txt pytest httpx
+        run: pip install -r sos_orchestrator/requirements.txt pytest httpx numpy scipy
 
-      - name: Run pytest suite
+      - name: Run full pytest suite
         run: PYTHONPATH=sos_orchestrator pytest tests/ -v --tb=short
 
       - name: Run integration validator (module-only)
         run: PYTHONPATH=sos_orchestrator python3 tests/integration_validation.py --no-live
 
-  # ── Dashboard build ───────────────────────────────────────────────────────
+  # ── Dashboard build ────────────────────────────────────────────────────────
   dashboard-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install and build
         run: |
           cd ops_dashboard
           npm install
           npm run build
 
-  # ── ROS 2 build (sos_interfaces + bringup) ────────────────────────────────
+  # ── ROS 2 build ────────────────────────────────────────────────────────────
   ros2-build-check:
     runs-on: ubuntu-latest
     container:
@@ -57,8 +55,10 @@ jobs:
             ros-humble-pcl-conversions \
             ros-humble-rclcpp-action \
             ros-humble-tf2-eigen \
+            ros-humble-cv-bridge \
             libpcl-dev \
-            python3-colcon-common-extensions
+            python3-colcon-common-extensions \
+            python3-numpy
 
       - name: Build sos_interfaces
         shell: bash
@@ -67,21 +67,39 @@ jobs:
           cd ros2_ws
           colcon build --packages-select sos_interfaces --symlink-install
 
-      - name: Build windfarm_bringup
+      - name: Build Python-only packages
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
           source ros2_ws/install/setup.bash
           cd ros2_ws
-          colcon build --packages-select windfarm_bringup --symlink-install
+          colcon build \
+            --packages-select drone_perception ground_robot_dock nde_crawler windfarm_bringup \
+            --symlink-install
+
+      - name: Colcon build C++ packages
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
+          cd ros2_ws
+          colcon build \
+            --packages-select drone_estimation safety_monitor ground_robot_nav \
+            --symlink-install
 
       - name: Launch import smoke check
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
+          source ros2_ws/install/setup.bash
           python3 -c "
           from launch import LaunchDescription
           from launch_ros.actions import Node
           from launch.actions import IncludeLaunchDescription
           print('launch imports ok')
           "
+
+      - name: Perception fusion unit tests (no ROS)
+        run: |
+          pip3 install pytest --quiet
+          PYTHONPATH=ros2_ws/src/drone_perception pytest tests/test_perception.py -v

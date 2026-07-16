@@ -8,6 +8,11 @@ def generate_launch_description():
             package='drone_perception',
             executable='perception_node.py',
             name='drone_perception',
-            output='screen'
+            output='screen',
+            parameters=[{
+                'fuse_alpha': 0.3,
+                'severity_threshold': 0.35,
+                'publish_rate_hz': 2.0,
+            }]
         )
     ])
